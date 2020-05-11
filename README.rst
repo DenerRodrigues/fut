@@ -1,10 +1,7 @@
 ================================================================================================================================================
-WARNING: I've review requests and this version looks as safe as stable versions for fifa18 but i might have miss something so please be careful.
+FUT API
 ================================================================================================================================================
 
-===
-fut
-===
 
 .. image:: https://img.shields.io/pypi/v/fut.svg
     :target: https://pypi.python.org/pypi/fut
