@@ -30,24 +30,24 @@ class Pin(object):
         self.platform = platform
         rc = requests.get('https://www.easports.com/fifa/ultimate-team/web-app/js/compiled_1.js').text
 
-        self.taxv = re.search('taxv:"(.+?)"', rc).group(1)
-        self.tidt = re.search('tidt:"(.+?)"', rc).group(1)
+        self.taxv = re.search('taxv:"(.+?)"', rc)
+        self.tidt = re.search('tidt:"(.+?)"', rc)
 
-        self.sku = sku or re.search('enums.SKU.FUT="(.+?)"', rc).group(1)
+        self.sku = sku
         self.rel = release_type
-        self.gid = re.search('gid:([0-9]+?)', rc).group(1)
+        self.gid = re.search('gid:([0-9]+?)', rc)
         self.plat = 'web'  # where is it? WEB:?
-        self.et = re.search('et:"(.+?)"', rc).group(1)
-        self.pidt = re.search('pidt:"(.+?)"', rc).group(1)
-        self.v = re.search('APP_VERSION="([0-9\.]+)"', rc).group(1)
+        self.et = re.search('et:"(.+?)"', rc)
+        self.pidt = re.search('pidt:"(.+?)"', rc)
+        self.v = re.search('APP_VERSION="([0-9\.]+)"', rc)
 
         self.r = requests.Session()
         self.r.headers = headers
         self.r.headers['Origin'] = 'https://www.easports.com'
         self.r.headers['Referer'] = 'https://www.easports.com/fifa/ultimate-team/web-app/'
         self.r.headers['x-ea-game-id'] = self.sku
-        self.r.headers['x-ea-game-id-type'] = self.tidt
-        self.r.headers['x-ea-taxv'] = self.taxv
+        # self.r.headers['x-ea-game-id-type'] = self.tidt
+        # self.r.headers['x-ea-taxv'] = self.taxv
 
         self.custom = {"networkAccess": "G"}  # wifi?
         # TODO?: full boot process when there is no session (boot start)
