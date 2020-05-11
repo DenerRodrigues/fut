@@ -188,8 +188,6 @@ def itemParse(item_data, full=True):
 # TODO: parse more data (short club names etc.)
 def nations(timeout=timeout):
     """Return all nations in dict {id0: nation0, id1: nation1}.
-
-    :params year: Year.
     """
     rc = requests.get(messages_url, timeout=timeout)
     rc.encoding = 'utf-8'  # guessing takes huge amount of cpu time
@@ -201,7 +199,7 @@ def nations(timeout=timeout):
     return nations
 
 
-def leagues(year=2019, timeout=timeout):
+def leagues(year=2020, timeout=timeout):
     """Return all leagues in dict {id0: league0, id1: legaue1}.
 
     :params year: Year.
@@ -216,7 +214,7 @@ def leagues(year=2019, timeout=timeout):
     return leagues
 
 
-def teams(year=2019, timeout=timeout):
+def teams(year=2020, timeout=timeout):
     """Return all teams in dict {id0: team0, id1: team1}.
 
     :params year: Year.
@@ -231,7 +229,7 @@ def teams(year=2019, timeout=timeout):
     return teams
 
 
-def stadiums(year=2019, timeout=timeout):
+def stadiums(year=2020, timeout=timeout):
     """Return all stadium in dict {id0: stadium0, id1: stadium1}.
 
     :params year: Year.
@@ -273,7 +271,7 @@ def players(timeout=timeout):
     return players
 
 
-def playstyles(year=2019, timeout=timeout):
+def playstyles(year=2020, timeout=timeout):
     """Return all playstyles in dict {id0: playstyle0, id1: playstyle1}.
 
     :params year: Year.
@@ -291,7 +289,7 @@ def playstyles(year=2019, timeout=timeout):
 class Core(object):
     def __init__(self, email, passwd, secret_answer, platform='pc', code=None, totp=None, sms=False, emulate=None,
                  debug=False, cookies=cookies_file, token=token_file, timeout=timeout, delay=delay, proxies=None,
-                 anticaptcha_client_key=None, stats_file=None):
+                 anticaptcha_client_key=None, stats_file=None, year=2020):
         self.credits = 0
         self.duplicates = []
         self.cookies_file = cookies  # TODO: map self.cookies to requests.Session.cookies?
@@ -300,13 +298,14 @@ class Core(object):
         self.delay = delay
         self.request_time = 0
         self.n = 0  # number of requests made so far
+        self.year = year
 
         if stats_file and Stats:
             self.stats = Stats(stats_file)
         else:
             self.stats = None
 
-        self.gameUrl = 'ut/game/fifa19'
+        self.gameUrl = 'ut/game/fifa%s' % str(self.year)[2:]
 
         # db
         self._players = None
@@ -459,7 +458,7 @@ class Core(object):
         else:
             self.r.headers = headers.copy()  # i'm chrome browser now ;-)
 
-        pre_game_sku = 'FFA19'  # TODO: maybe read from shards v2
+        pre_game_sku = 'FFA%s' % str(self.year)[2:]  # TODO: maybe read from shards v2
         if platform == 'pc':  # TODO: get this from shards
             game_sku = '%sPCC' % pre_game_sku
         elif platform == 'xbox':
@@ -477,7 +476,7 @@ class Core(object):
         #    return True  # no need to log in again
         # emulate
 
-        pre_sku = 'FUT19'  # TODO: maybe read from shards v2
+        pre_sku = 'FUT%s' % str(self.year)[2:]  # TODO: maybe read from shards v2
         if emulate == 'ios':
             sku = '%sIOS' % pre_sku
             clientVersion = 21
@@ -500,7 +499,7 @@ class Core(object):
         else:
             raise FutError(reason='Invalid emulate parameter. (Valid ones are and/ios).')  # pc/ps3/xbox/
         self.sku = sku  # TODO: use self.sku in all class
-        self.sku_b = 'FFT19'  # TODO: maybe read from shards v2
+        self.sku_b = 'FFT%s' % str(self.year)[2:]  # TODO: maybe read from shards v2
 
         # === launch futweb
         # TODO: maybe use custom locals, cause ea knows where u are coming from
@@ -562,7 +561,7 @@ class Core(object):
         # personas
         data = {'filterConsoleLogin': 'true',
                 'sku': self.sku,
-                'returningUserGameYear': '2018'}  # allways year-1? or maybe current release year
+                'returningUserGameYear': self.year}  # allways year-1? or maybe current release year
         rc = self.r.get('https://%s/%s/user/accountinfo' % (self.fut_host, self.gameUrl), params=data).json()
         # pick persona (first valid for given game_sku)
         personas = rc['userAccountInfo']['personas']
@@ -683,8 +682,8 @@ class Core(object):
             self.r.headers['X-UT-PHISHING-TOKEN'] = self.token = rc['token']
 
         # init pin
-        self.pin = Pin(sid=self.sid, nucleus_id=self.nucleus_id, persona_id=self.persona_id, dob=self.dob[:-3],
-                       platform=platform)
+        self.pin = Pin(sku=self.sku, sid=self.sid, nucleus_id=self.nucleus_id, persona_id=self.persona_id,
+                       dob=self.dob[:-3], platform=platform)
         events = [self.pin.event('login', status='success')]
         self.pin.send(events)
 
@@ -877,16 +876,17 @@ class Core(object):
 
     @property
     def players(self):
-        """Return all players in dict {id: c, f, l, n, r}."""
+        """
+        Return all players in dict {id: c, f, l, n, r}.
+        """
         if not self._players:
             self._players = players()
         return self._players
 
     @property
-    def playstyles(self, year=2019):
-        """Return all playstyles in dict {id0: playstyle0, id1: playstyle1}.
-
-        :params year: Year.
+    def playstyles(self):
+        """
+        Return all playstyles in dict {id0: playstyle0, id1: playstyle1}.
         """
         if not self._playstyles:
             self._playstyles = playstyles()
@@ -894,39 +894,34 @@ class Core(object):
 
     @property
     def nations(self):
-        """Return all nations in dict {id0: nation0, id1: nation1}.
-
-        :params year: Year.
+        """
+        Return all nations in dict {id0: nation0, id1: nation1}.
         """
         if not self._nations:
             self._nations = nations()
         return self._nations
 
     @property
-    def leagues(self, year=2019):
-        """Return all leagues in dict {id0: league0, id1: league1}.
-
-        :params year: Year.
+    def leagues(self):
         """
-        if year not in self._leagues:
-            self._leagues[year] = leagues(year)
-        return self._leagues[year]
+        Return all leagues in dict {id0: league0, id1: league1}.
+        """
+        if self.year not in self._leagues:
+            self._leagues[self.year] = leagues(self.year)
+        return self._leagues[self.year]
 
     @property
-    def teams(self, year=2019):
-        """Return all teams in dict {id0: team0, id1: team1}.
-
-        :params year: Year.
+    def teams(self):
         """
-        if year not in self._teams:
-            self._teams[year] = teams(year)
-        return self._teams[year]
+        Return all teams in dict {id0: team0, id1: team1}.
+        """
+        if self.year not in self._teams:
+            self._teams[self.year] = teams(self.year)
+        return self._teams[self.year]
 
     @property
     def stadiums(self):
         """Return all stadiums in dict {id0: stadium0, id1: stadium1}.
-
-        :params year: Year.
         """
         if not self._stadiums:
             self._stadiums = stadiums()
@@ -1467,9 +1462,9 @@ class Core(object):
 
     def pileSize(self):
         """Return size of tradepile and watchlist."""
-        rc = self._usermassinfo['pileSizeClientData']['entries']
-        return {'tradepile': rc[0]['value'],
-                'watchlist': rc[2]['value']}
+        rc = self._usermassinfo.get('pileSizeClientData', {}).get('entries')
+        return {'tradepile': rc[0]['value'] if rc else 0,
+                'watchlist': rc[2]['value'] if rc else 0}
 
     #
     # def stats(self):
