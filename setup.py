@@ -13,6 +13,10 @@ __author_email__ = 'piotr.staroszczyk@get24.org'
 __license__ = 'GNU GPL v3'
 __copyright__ = 'Copyright 2013 Piotr Staroszczyk'
 
+packages = [
+    __title__,
+    # '%s.modules' % __title__,
+]
 
 with open('requirements.txt') as f:
     requires = f.read().splitlines()
@@ -33,7 +37,10 @@ setup(
     bugtrack_url='https://github.com/oczkers/%s/issues' % __title__,
     platforms='any',
     keywords='%s fifa ultimate team ut pc xbox android ios 360 ps3 playstation' % __title__,
-    packages=['fut'],
+    packages=packages,
+    package_data={'': ['LICENSE']},
+    package_dir={__title__: __title__},
+    include_package_data=True,
     install_requires=requires,
     # license=open('LICENSE').read(),
     license=__license__,
