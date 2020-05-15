@@ -702,7 +702,7 @@ class Core(object):
         # TODO: parse usermassinfo and change _usermassinfo to userinfo
         # TODO?: usermassinfo as separate method && ability to refresh piles etc.
         self._usermassinfo = self.r.get('https://%s/%s/usermassinfo' % (self.fut_host, self.gameUrl), timeout=self.timeout).json()
-        if self._usermassinfo['userInfo']['feature']['trade'] == 0:
+        if self._usermassinfo.get('userInfo', {}).get('feature', {}).get('trade', 0) == 0:
             raise FutError(reason='Transfer market is probably disabled on this account.')  # if tradingEnabled = 0
 
         # settings, not used, not necesary, just to make it less detectable # TODO: repeat every 10 minutes
@@ -979,7 +979,7 @@ class Core(object):
             page_size = count
 
         base_id = baseId(asset_id)
-        if base_id not in self.players:
+        if base_id not in [player.get('id') for player in self.players]:
             raise FutError(reason='Invalid player asset/definition id.')
 
         params = {
