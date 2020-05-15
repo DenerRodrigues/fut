@@ -256,18 +256,29 @@ def balls(timeout=timeout):
     return balls
 
 
-def players(timeout=timeout):
+def players(year=2020, timeout=timeout):
     """Return all players in dict {id: c, f, l, n, r}.
     id, rank, nationality(?), first name, last name.
     """
-    rc = requests.get('{0}{1}.json'.format(card_info_url, 'players'), timeout=timeout).json()
-    players = {}
-    for i in rc['Players'] + rc['LegendsPlayers']:
-        players[i['id']] = {'id': i['id'],
-                            'firstname': i['f'],
-                            'lastname': i['l'],
-                            'surname': i.get('c'),
-                            'rating': i['r']}
+
+    def parse(players_list, is_legend=False):
+        parsed_list = []
+        for player in players_list:
+            parsed_list.append({
+                'id': player.get('id'),
+                'firstname': player.get('f'),
+                'lastname': player.get('l'),
+                'surname': player.get('c') or '{0} {1}'.format(player.get('f'), player.get('l')),
+                'rating': player.get('r'),
+                'is_legend': is_legend,
+            })
+        return parsed_list
+
+    url = card_info_url.format(year=year)
+    rc = requests.get('{0}{1}.json'.format(url, 'players'), timeout=timeout).json()
+
+    players = parse(rc.get('LegendsPlayers'), True)
+    players.extend(parse(rc.get('Players')))
     return players
 
 
@@ -880,7 +891,7 @@ class Core(object):
         Return all players in dict {id: c, f, l, n, r}.
         """
         if not self._players:
-            self._players = players()
+            self._players = players(self.year)
         return self._players
 
     @property
@@ -951,8 +962,8 @@ class Core(object):
         if base_id in self.players:
             return self.players[base_id]
         else:  # not a player?
-            url = '{0}{1}.json'.format(card_info_url, base_id)
-            return requests.get(url, timeout=self.timeout).json()
+            url = card_info_url.format(year=self.year)
+            return requests.get('{0}{1}.json'.format(url, base_id), timeout=self.timeout).json()
 
     def searchDefinition(self, asset_id, start=0, page_size=itemsPerPage['transferMarket'], count=None):
         """Return variations of the given asset id, e.g. IF cards.
